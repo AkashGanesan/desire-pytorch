@@ -1,3 +1,8 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 class EncoderRNN(nn.Module):
     '''Source :
     https://pytorch.org/tutorials/beginner/chatbot_tutorial.html This will
