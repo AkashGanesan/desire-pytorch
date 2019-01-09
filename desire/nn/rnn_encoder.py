@@ -11,9 +11,11 @@ class EncoderRNN(nn.Module):
     https://pytorch.org/tutorials/beginner/chatbot_tutorial.html This will
     be used in the front end.
 
-    Removed the embedding layer as we it is directly encoded into positions (x,y)
+    Removed the embedding layer as we it is directly encoded into
+    positions (x,y)
     '''
-    def __init__(self, params : EncoderRNNParams):
+
+    def __init__(self, params: EncoderRNNParams):
         # hidden_size, n_layers=20, dropout=0
         super(EncoderRNN, self).__init__()
         self.params = params
@@ -29,8 +31,7 @@ class EncoderRNN(nn.Module):
                                    self.kernel_size,
                                    padding=True)
 
-        # Initialize GRU; the input_size and hidden_size params are both set to 'hidden_size'
-        #   because our input size is a word embedding with number of features == hidden_size
+
         self.gru = nn.GRU(self.intermediate_size,
                           self.gru_hidden_size,
                           self.n_layers,
@@ -38,19 +39,11 @@ class EncoderRNN(nn.Module):
                           bidirectional=False,
                           batch_first=True)
 
-
     def forward(self, input_seq, hidden=None):
-        # Pack padded batch of sequences for RNN module
-        # packed = torch.nn.utils.rnn.pack_padded_sequence(input_seq, input_lengths, batch_first=True)
         packed = F.relu(self.in_conv1d(input_seq))
         # Forward pass through GRU
         outputs, hidden = self.gru(packed, hidden)
-        # Unpack padding
-        # Sum bidirectional GRU outputs
-        # outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
-        # Return output and final hidden state
         return outputs, hidden[-1]
-
 
 
 if __name__=="__main__":
