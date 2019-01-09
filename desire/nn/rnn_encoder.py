@@ -6,16 +6,6 @@ from collections import namedtuple
 EncoderRNNParams = namedtuple('EncoderRNNParams', 'input_size intermediate_size gru_hidden_size n_layers dropout kernel_size')
 
 
-sample_parameters = EncoderRNNParams(input_size=2,
-                                     intermediate_size=20,
-                                     gru_hidden_size=48,
-                                     kernel_size=3,
-                                     n_layers=20,
-                                     dropout=0)
-
-
-
-
 class EncoderRNN(nn.Module):
     '''Source :
     https://pytorch.org/tutorials/beginner/chatbot_tutorial.html This will
@@ -60,3 +50,16 @@ class EncoderRNN(nn.Module):
         # outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
         # Return output and final hidden state
         return outputs, hidden[-1]
+
+
+
+if __name__=="__main__":
+    ''' Sample parameters and simple forwar pass test'''
+    sample_parameters = EncoderRNNParams(input_size=2,
+                                     intermediate_size=20,
+                                     gru_hidden_size=48,
+                                     kernel_size=3,
+                                     n_layers=20,
+                                     dropout=0)
+    a = torch.rand(3,2,20)
+    b = EncoderRNN(sample_parameters) ; o, h = b(a)
