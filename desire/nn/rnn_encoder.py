@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import namedtuple
-
-EncoderRNNParams = namedtuple('EncoderRNNParams', 'input_size intermediate_size gru_hidden_size n_layers dropout kernel_size')
+from desire.utils import EncoderRNNParams
 
 
 class EncoderRNN(nn.Module):
@@ -31,7 +29,6 @@ class EncoderRNN(nn.Module):
                                    self.kernel_size,
                                    padding=True)
 
-
         self.gru = nn.GRU(self.intermediate_size,
                           self.gru_hidden_size,
                           self.n_layers,
@@ -43,16 +40,18 @@ class EncoderRNN(nn.Module):
         packed = F.relu(self.in_conv1d(input_seq))
         # Forward pass through GRU
         outputs, hidden = self.gru(packed, hidden)
-        return outputs, hidden[-1]
+        return outputs, hidden
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     ''' Sample parameters and simple forwar pass test'''
     sample_parameters = EncoderRNNParams(input_size=2,
-                                     intermediate_size=20,
-                                     gru_hidden_size=48,
-                                     kernel_size=3,
-                                     n_layers=20,
-                                     dropout=0)
-    a = torch.rand(3,2,20)
-    b = EncoderRNN(sample_parameters) ; o, h = b(a)
+                                         intermediate_size=20,
+                                         gru_hidden_size=48,
+                                         kernel_size=3,
+                                         n_layers=20,
+                                         dropout=0)
+    sample_parameters = EncoderRNNParams()
+    a = torch.rand(3, 20, 2)
+    b = EncoderRNN(sample_parameters)
+    o, h = b(a)
