@@ -1,24 +1,32 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from typing import NamedTuple
+import torch.nn as nn
 
-from desire.nn.exp import Exp
+
+NUM_AGENTS = 16
+NUM_LENGTH = 40
+
+class Exp(nn.Module):
+    def __init__(self):
+        super(Exp, self).__init__()
+
+
+    def forward(self, x):
+        return x.exp() * 0.5
 
 
 class EncoderRNNParams(NamedTuple):
     input_size: int = 2
-    intermediate_size: int = 20
+    intermediate_size: int = 16
     gru_hidden_size: int = 48
     kernel_size: int = 3
-    n_layers: int = 20
+    n_layers: int = 40
     dropout: float = 0.0
 
 
 class DecoderRNNParams(NamedTuple):
     gru_hidden_size: int = 48
     output_size: int = 2
-    n_layers: int = 20
+    n_layers: int = 40
     dropout: float = 0.0
 
 
@@ -29,7 +37,7 @@ class CVAEEncoderParams(NamedTuple):
 
 class CVAEDecoderParams(NamedTuple):
     layer_sizes: list = [(96, 48), (48, 48)]
-    layer_activations: list = [None, nn.Softmax()]
+    layer_activations: list = [None, nn.Softmax(dim=1)]
 
 
 class CVAEParams(NamedTuple):
@@ -39,6 +47,49 @@ class CVAEParams(NamedTuple):
     latent_size: int = 48
 
 
+class SocialPoolingParams(NamedTuple):
+    num_rings: int = 6
+    num_wedges: int = 6
+    hidden_size: int = 48
+    num_agents: int = NUM_AGENTS
+    rmin: int = 1
+    rmax: int = 2
+    fc_config: list = [num_rings * num_wedges * hidden_size, 48, nn.ReLU()]
+
+    
+class PoolingCNNParams(NamedTuple):
+    layer_configuration: list = [(3, 16, (5, 5), 2, nn.Conv2d, nn.ReLU()),
+                                 (16, 32, (5, 5), 1, nn.Conv2d, nn.ReLU()),
+                                 (32, 32, (5, 5), 1, nn.Conv2d, nn.ReLU())]
+
+
+class SCFParams(NamedTuple):
+    velocity_fc: list = [(2, 16, nn.ReLU())]
+    sp_params: SocialPoolingParams = SocialPoolingParams()
+
+
+class SGMParams(NamedTuple):
+    cvae_params: CVAEParams = CVAEParams()
+    rnn_enc_params: EncoderRNNParams = EncoderRNNParams()
+    rnn_dec_params: DecoderRNNParams = DecoderRNNParams()
+
+class IOCParams(NamedTuple):
+    scf_params: SCFParams = SCFParams()
+    gru_params: dict = {'input_size': 96,
+                        'hidden_size': 48,
+                        'num_layers': 1,
+                        'dropout': 0,
+                        'bidirectional': False,
+                        'batch_first': True}
+    num_layers: int = NUM_LENGTH
+    scoring_fc: list = [(48, 1, nn.ReLU())]
+
+
+# class SCFParams(NamedTuple):
+#     feature_pooling: 
+    
+# class IOCParams(NamedTuple):
+    
 # _cvae_enc1_params = CVAEEncoderParams(
 #     layer_sizes=[(96, 48), (48, 48), (48, 48)],
 #     layer_activations=[nn.ReLU(), None, Exp()])
