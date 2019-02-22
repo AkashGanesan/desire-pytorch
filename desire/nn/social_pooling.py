@@ -67,10 +67,11 @@ class SocialPool(nn.Module):
         self.fc = nn.Linear(*params.fc_config[0:2])
         self.hidden_size = params.hidden_size
 
-    def forward(self, ypred, hidden):
-        ridx, widx = ring_indices(ypred,
+    def forward(self, y_pred_rel, x_start, hidden):
+        y_pred = y_pred_rel + x_start
+        ridx, widx = ring_indices(y_pred,
                                   self.params)
-
+        
                 
         valid_hidden_idx = pool_layers(ridx,
                                        widx,
