@@ -21,7 +21,7 @@ class SGM(nn.Module):
         x_enc_out, x_enc_hidden = self.enc_x(x)
         y_enc_out, y_enc_hidden = self.enc_y(y)
         recon_y, means, log_var, z = self.cvae(y_enc_hidden[-1], x_enc_hidden[-1])
-
+        return means, log_var
         masked_out = torch.mul(recon_y, x_enc_hidden[-1])
         masked_out.unsqueeze_(1)
         
