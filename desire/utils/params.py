@@ -9,7 +9,6 @@ class Exp(nn.Module):
     def __init__(self):
         super(Exp, self).__init__()
 
-
     def forward(self, x):
         return x.exp() * 0.5
 
@@ -39,7 +38,7 @@ class CVAEDecoderParams(NamedTuple):
     layer_sizes: list = [(96, 48), (48, 48)]
     layer_activations: list = [None, nn.Softmax(dim=1)]
 
-
+ 
 class CVAEParams(NamedTuple):
     encoder_params: CVAEEncoderParams = CVAEEncoderParams()
     decoder_params: CVAEDecoderParams = CVAEDecoderParams()
@@ -62,6 +61,7 @@ class PoolingCNNParams(NamedTuple):
                                  (16, 32, (5, 5), 1, nn.Conv2d, nn.ReLU()),
                                  (32, 32, (5, 5), 1, nn.Conv2d, nn.ReLU())]
 
+    
 
 class SCFParams(NamedTuple):
     velocity_fc: list = [(2, 16, nn.ReLU())]
@@ -82,6 +82,8 @@ class IOCParams(NamedTuple):
                         'bidirectional': False,
                         'batch_first': True}
     num_layers: int = NUM_LENGTH
+    num_agents: int = NUM_AGENTS
+    num_dims: int = 2
     scoring_fc: list = [(48, 1, nn.ReLU())]
 
 
