@@ -75,7 +75,7 @@ class CVAEDecoder(nn.Module):
 
     def forward(self, z, c):
         z = torch.cat((z, c), dim=-1)
-        print("Dimension of z is", z.size())
+        # print("Dimension of z is", z.size())
         x = self.MLP(z)
         return x
 

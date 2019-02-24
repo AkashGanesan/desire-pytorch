@@ -8,8 +8,7 @@ from typing import NamedTuple
 from desire.utils import SocialPoolingParams
 
 
-
-def ring_indices(ydash, params : SocialPoolingParams):
+def ring_indices(ydash, params: SocialPoolingParams):
     ''' Returns the ring indices of each id given an id'''
 
     with torch.no_grad():
@@ -18,15 +17,15 @@ def ring_indices(ydash, params : SocialPoolingParams):
         rmin = params.rmin
         rmax = params.rmax
 
-        print("A")
+        # print("A")
         r = torch.norm(ydash[:, None] - ydash, dim=2, p=2)
         rmax_by_rmin = np.log(int(rmax / float(rmin)))
-        
+
         ring_ids = torch.where(r < rmin,
                                torch.zeros_like(r) - 1,
                                torch.floor((num_rings - 1) * (torch.log(r / rmin) /
                                                               rmax_by_rmin)))
-        
+
         x_diff = (ydash[:, 0] - ydash[:, 0, None])
         y_diff = (ydash[:, 1] - ydash[:, 1, None])
 
@@ -37,7 +36,7 @@ def ring_indices(ydash, params : SocialPoolingParams):
     return ring_ids, (wedge_ids + (num_wedges // 2 - 1)).int()
 
 
-def pool_layers(ring_id_all, wedge_id_all, params : SocialPoolingParams):
+def pool_layers(ring_id_all, wedge_id_all, params: SocialPoolingParams):
 
     num_rings = params.num_rings
     num_wedges = params.num_wedges
@@ -71,20 +70,27 @@ class SocialPool(nn.Module):
         y_pred = y_pred_rel + x_start
         ridx, widx = ring_indices(y_pred,
                                   self.params)
-        
-                
         valid_hidden_idx = pool_layers(ridx,
                                        widx,
                                        self.params)
 
-        log_polar_hidden = torch.zeros(self.params.num_agents,
+
+        num_agents = y_pred_rel.size(0)
+        log_polar_hidden = torch.zeros(num_agents,
                                        self.params.num_rings,
                                        self.params.num_wedges,
                                        self.params.hidden_size)
 
+
         for (k, v) in valid_hidden_idx.items():
+            # print("Ring indices", ridx)
+            # print("wedge indices", widx)
+            # print("valid hidden idx", valid_hidden_idx)
+            # print("Look up is v", v)
+            # print("log polar hidden shape", hidden.shape)
             log_polar_hidden[k] = hidden[v].mean(dim=0)
 
+        
         log_polar_hidden = log_polar_hidden.flatten(start_dim=1, end_dim=-1)
         return F.relu(self.fc(log_polar_hidden))
 
