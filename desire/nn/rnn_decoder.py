@@ -29,7 +29,7 @@ class DecoderRNN(nn.Module):
     def forward(self, input, hidden):
         output, hidden = self.gru(input)
 
-        print ("INput size, output_Size", input.size(), output.size())
+        # print ("INput size, output_Size", input.size(), output.size())
         output = self.out(output)
 
         return output, hidden

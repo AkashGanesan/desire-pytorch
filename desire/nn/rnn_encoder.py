@@ -39,8 +39,8 @@ class EncoderRNN(nn.Module):
 
     def forward(self, input_seq, hidden=None):
         packed = F.relu(self.in_conv1d(input_seq))
-        packed.transpose_(2,1)
-        print("Shape of packed", packed.size())
+        packed.transpose_(2, 1)
+        # print("Shape of packed", packed.size())
         # Forward pass through GRU
         outputs, hidden = self.gru(packed, hidden)
         return outputs, hidden
