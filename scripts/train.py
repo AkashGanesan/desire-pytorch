@@ -88,10 +88,12 @@ def main(dataset_name,
                                          pred_traj,
                                          mean,
                                          log_var)
+            
             tloss.backward()
             optimizer.step()
             if t % 10 == 0:
                 logging.info("all_loss %s", str(all_loss))
+                break
             t +=1
 
 
@@ -99,4 +101,4 @@ def main(dataset_name,
 if __name__ == "__main__":
     dataset_name = "/home/akash/learn/mypage/desire-torch/dataset/datasets/zara1/"
     path_of_static_image = "/home/akash/learn/mypage/desire-torch/zara01.background.png"
-    a = main(dataset_name, path_of_static_image)
+    a, b = main(dataset_name, path_of_static_image)
