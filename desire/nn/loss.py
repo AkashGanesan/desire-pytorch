@@ -44,7 +44,7 @@ def l2_loss(pred_traj, pred_traj_gt, mode='sum'):
 
 def kld_loss(mean,
              log_var):
-    KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp(), dim=1)
+    KLD = - 0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp(), dim=1)
     return KLD
 
 

@@ -17,7 +17,13 @@ class SCF(nn.Module):
     def forward(self, hidden, ypred, velocity, scene, x_start):
 
         vel_out = self.velocity_fc(ypred)
+        # print(ypred.device,
+        #       x_start.device,
+        #       hidden.device,
+        #       vel_out.device)
         scene_out = get_scene(scene, ypred, x_start, self.params.scene_size)
+
+        # print("scene out device", scene_out.device)
         sp_out = self.sp_nn(ypred, x_start, hidden)
         # print("Shapes 1", ypred.shape, x_start.shape, scene.shape)
         # print ("Shapes",
@@ -32,10 +38,15 @@ if __name__ == "__main__":
     num_agents = 4
     dimensions = 2
     length = 12
-    scf = SCF(idx, SCFParams())
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    scf = SCF(idx, SCFParams()).to(device)
+    print(scf)
     y = torch.randn(num_agents, dimensions)
-    x_start = torch.randn(num_agents, dimensions)
-    v = np.gradient(y, axis=0)
-    hidden = torch.randn(num_agents, 48)
-    scene = torch.randn(1, 32, 100, 120)
+    x_start = torch.randn(num_agents, dimensions).to(device)
+    v = torch.Tensor(np.gradient(y, axis=0)).to(device)
+    y = y.to(device)
+    hidden = torch.randn(num_agents, 48).to(device)
+    scene = torch.randn(32, 720 // 2, 576 // 2).to(device)
+    
     m = scf(hidden, y, v, scene, x_start)
+    

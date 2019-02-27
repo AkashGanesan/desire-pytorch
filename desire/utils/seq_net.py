@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import torch
 
 def return_seq(params):
     seq_net = nn.Sequential()
@@ -17,7 +17,7 @@ def return_seq(params):
         if activation is not None:
             self.seq_net.add_module(name="A%i" % (i),
                                     module=activation)
-    return seq_net
+    return seq_net.to
 
 def get_fc_act(layers):
     seq_net = nn.Sequential()

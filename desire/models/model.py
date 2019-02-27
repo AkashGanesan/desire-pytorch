@@ -23,6 +23,8 @@ class DESIRE(nn.Module):
                 x_start,
                 scene):
         y_pred_rel, x_last_hidden, mean, log_var = self.SGM(x_rel, y_rel)
+        
+        
         # print("YPRED REL", y_pred_rel.shape)
         out_scores, pred_delta = self.IOC(y_pred_rel,
                                           x_last_hidden,

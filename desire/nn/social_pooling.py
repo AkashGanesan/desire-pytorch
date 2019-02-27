@@ -70,16 +70,17 @@ class SocialPool(nn.Module):
         y_pred = y_pred_rel + x_start
         ridx, widx = ring_indices(y_pred,
                                   self.params)
+
         valid_hidden_idx = pool_layers(ridx,
                                        widx,
                                        self.params)
 
-
         num_agents = y_pred_rel.size(0)
+
         log_polar_hidden = torch.zeros(num_agents,
                                        self.params.num_rings,
                                        self.params.num_wedges,
-                                       self.params.hidden_size)
+                                       self.params.hidden_size).to(x_start.device)
 
 
         for (k, v) in valid_hidden_idx.items():
@@ -90,8 +91,8 @@ class SocialPool(nn.Module):
             # print("log polar hidden shape", hidden.shape)
             log_polar_hidden[k] = hidden[v].mean(dim=0)
 
-        
         log_polar_hidden = log_polar_hidden.flatten(start_dim=1, end_dim=-1)
+        # print("log_polar_hidden ", log_polar_hidden.device)
         return F.relu(self.fc(log_polar_hidden))
 
 

@@ -13,7 +13,7 @@ from desire.utils.misc import relative_to_abs, get_dset_path
 from desire.utils.misc import int_tuple, bool_flag, get_total_norm
 from desire.models import DESIRE
 from desire.utils.params import IOCParams, SGMParams
-from desire.nn.loss import total_loss
+from desire.nn.loss import *
 from PIL import Image
 
 
@@ -41,10 +41,15 @@ def main(dataset_name,
     # logger.info("Initializing val dataset")
     # _, val_loader = data_loader(val_path)
 
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info("Device is %s", device)
+
     image = Image.open(path_of_static_image)
     scene = TF.to_tensor(image)
     scene.unsqueeze_(0)
-
+    scene = scene.to(device)
+    
     iterations_per_epoch = len(train_dset) / batch_size
     if num_epochs:
         num_iterations = int(iterations_per_epoch * num_epochs)
@@ -55,6 +60,7 @@ def main(dataset_name,
 
     desire = DESIRE(IOCParams(),
                     SGMParams())
+    desire = desire.to(device)
     lr = 1e-3
     optimizer = optim.Adam(desire.parameters(),lr=lr)
 
@@ -65,7 +71,6 @@ def main(dataset_name,
 
         desire.load_state_dict(restore_dict)
 
-
     curr_epoch = 0
     t = 0
     print("Num iterations", num_iterations)
@@ -73,32 +78,41 @@ def main(dataset_name,
         for batch in train_dset:
             optimizer.zero_grad()
             obs_traj, pred_traj, obs_traj_rel, pred_traj_rel, _, _= batch
+            obs_traj = obs_traj.to(device)
+            obs_traj_rel = obs_traj_rel.to(device)
+            pred_traj = pred_traj.to(device)
+            pred_traj_rel = pred_traj_rel.to(device)
             # print("obs_traj size", obs_traj.size())
             # print("pred_traj size", pred_traj.size())
             # print("obs_traj_rel size", obs_traj_rel.size())
             # print("pred_traj_rel size", pred_traj_rel.size())
+            # logging.info("scene device id %s", scene.get_device())
+            # logging.info("OBS_TRAJ device id: %s", obs_traj.get_device())
+            x_start = obs_traj[:, :, 0].clone().to(device)
+            # logging.info("x_start device id: %s", x_start.get_device())
+            y_pred_traj, pred_delta, mean, log_var = desire(obs_traj_rel,
+                                                            pred_traj_rel,
+                                                            x_start,
+                                                            scene)
 
-            x_start = obs_traj[:, :, 0]
-            y_pred_traj, pred_delta, mean, log_var = desire.forward(obs_traj_rel,
-                                                                    pred_traj_rel,
-                                                                    x_start,
-                                                                    scene)
+
             tloss, all_loss = total_loss(y_pred_traj,
                                          pred_delta,
                                          pred_traj,
                                          mean,
                                          log_var)
-            
+
             tloss.backward()
             optimizer.step()
-            if t % 10 == 0:
-                logging.info("all_loss %s", str(all_loss))
+            if t % 1000 == 0:
+                logging.info("Total loss %s", str(tloss))
                 break
             t +=1
 
 
 
 if __name__ == "__main__":
-    dataset_name = "/home/akash/learn/mypage/desire-torch/dataset/datasets/zara1/"
-    path_of_static_image = "/home/akash/learn/mypage/desire-torch/zara01.background.png"
+    print(os.getcwd())
+    dataset_name = os.path.abspath("./dataset/datasets/zara1/")
+    path_of_static_image = os.path.abspath("./zara01.background.png")
     a, b = main(dataset_name, path_of_static_image)

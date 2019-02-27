@@ -19,7 +19,7 @@ class SGM(nn.Module):
         self.dec = DecoderRNN(params.rnn_dec_params)
         self.dec_fc = nn.Linear(params.rnn_dec_params.gru_hidden_size,
                                 params.final_output_size)
-
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     def forward(self, x, y):
         x_enc_out, x_enc_hidden = self.enc_x(x)
         y_enc_out, y_enc_hidden = self.enc_y(y)
@@ -33,7 +33,7 @@ class SGM(nn.Module):
         masked_out = torch.cat([masked_out,
                                torch.zeros(batch_size,
                                            self.params.rnn_dec_params.n_layers - 1,
-                                           hidden_size)], dim=1)
+                                           hidden_size).to(self.device)], dim=1)
         dec_out, dec_hidden = self.dec(masked_out, hidden_rnn_dec_input)
         dec_out.transpose_(1, 2)  # Swap seq_length with no of dimensions
         dec_out_list = []
@@ -55,11 +55,12 @@ class SGM(nn.Module):
 
 
 if __name__ == "__main__":
-    model = SGM(SGMParams())
-    x = torch.rand(16, 2, 8)
-    y = torch.rand(16, 2, 12)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = SGM(SGMParams()).to(device)
+    x = torch.rand(16, 2, 8).to(device)
+    y = torch.rand(16, 2, 12).to(device)
     pred, last_hidden, means, log_var = model(x, y)
-
+    log_var.sum().backward()
 
 
 # x_enc_out, x_enc_hidden = model.SGM.enc_x(x_rel)
