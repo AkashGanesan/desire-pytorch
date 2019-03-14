@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 from desire.utils import CVAEDecoderParams, CVAEEncoderParams, CVAEParams
 
@@ -16,11 +17,11 @@ class CVAE(nn.Module):
 
     def forward(self, x, c):
         batch_size = x.size(0)
-
+        device = x.device
         means, log_var = self.encoder(x, c)
 
         std = torch.exp(0.5 * log_var)
-        eps = to_var(torch.randn([batch_size, self.latent_size]))
+        eps = torch.randn([batch_size, self.latent_size]).to(device)
         z = eps * std + means
 
         recon_x = self.decoder(z, c)
@@ -28,7 +29,9 @@ class CVAE(nn.Module):
         return recon_x, means, log_var, z
 
     def inference(self, c, batch_size=1):
-        z = to_var(torch.randn([batch_size, self.latent_size]))
+        device = c.device
+        z = torch.randn([batch_size, self.latent_size]).to(device)
+        # print ("cvae:", z.shape, c.shape)
         recon_x = self.decoder(z, c)
         return recon_x
 
@@ -54,7 +57,8 @@ class CVAEEncoder(nn.Module):
         x = torch.cat([x, c], dim=-1)
         x = self.MLP(x)
         means = self.linear_means(x)
-        logvars = self.linear_log_var(x)
+        # Below Added for num stability. See https://github.com/dragen1860/pytorch-mnist-vae/blob/master/vae.py
+        logvars = F.relu(self.linear_log_var(x))
         return means, logvars
 
 

@@ -19,21 +19,22 @@ class SGM(nn.Module):
         self.dec = DecoderRNN(params.rnn_dec_params)
         self.dec_fc = nn.Linear(params.rnn_dec_params.gru_hidden_size,
                                 params.final_output_size)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     def forward(self, x, y):
+        device = x.device
         x_enc_out, x_enc_hidden = self.enc_x(x)
         y_enc_out, y_enc_hidden = self.enc_y(y)
         recon_y, means, log_var, z = self.cvae(y_enc_hidden[-1], x_enc_hidden[-1])
         masked_out = torch.mul(recon_y, x_enc_hidden[-1])
-
         masked_out.unsqueeze_(1)
+        # print("masked_out.shappe", masked_out.shape)
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
         batch_size = masked_out.size(0)
         hidden_size = masked_out.size(2)
         masked_out = torch.cat([masked_out,
                                torch.zeros(batch_size,
                                            self.params.rnn_dec_params.n_layers - 1,
-                                           hidden_size).to(self.device)], dim=1)
+                                           hidden_size).to(device)], dim=1)
         dec_out, dec_hidden = self.dec(masked_out, hidden_rnn_dec_input)
         dec_out.transpose_(1, 2)  # Swap seq_length with no of dimensions
         dec_out_list = []
@@ -44,14 +45,33 @@ class SGM(nn.Module):
                 x_enc_out[:, -1, :],
                 means,
                 log_var)
-    
+
     def inference(self, x):
+        device = x.device
         x_enc_out, x_enc_hidden = self.enc_x(x)
-        recon_y = self.cvae.inference(x_enc_hidden, x_enc_hidden.size(0))
-        masked_out = torch.mul(recon_y, x_enc_out)
-        ypred = self.dec(x,
-                         masked_out)
-        return ypred
+        # print(x_enc_hidden[-1].shape, self.cvae.latent_size, x_enc_hidden.size(0))
+        recon_y = self.cvae.inference(x_enc_hidden[-1], x_enc_hidden[-1].size(0))
+        masked_out = torch.mul(recon_y, x_enc_hidden[-1])
+
+        masked_out.unsqueeze_(1)
+        
+        hidden_rnn_dec_input = torch.zeros_like(masked_out)
+        batch_size = masked_out.size(0)
+        hidden_size = masked_out.size(2)
+
+        masked_out = torch.cat([masked_out,
+                               torch.zeros(batch_size,
+                                           self.params.rnn_dec_params.n_layers - 1,
+                                           hidden_size).to(device)], dim=1)
+
+        dec_out, dec_hidden = self.dec(masked_out, hidden_rnn_dec_input)
+        dec_out.transpose_(1, 2)  # Swap seq_length with no of dimensions
+        dec_out_list = []
+        for i in range(dec_out.size(2)):
+            dec_out_list.append(self.dec_fc(dec_out[:, :, i]))
+
+        return (torch.stack(dec_out_list, dim=2),
+                x_enc_out[:, -1, :])
 
 
 if __name__ == "__main__":
@@ -60,6 +80,7 @@ if __name__ == "__main__":
     x = torch.rand(16, 2, 8).to(device)
     y = torch.rand(16, 2, 12).to(device)
     pred, last_hidden, means, log_var = model(x, y)
+    model.inference(x)
     log_var.sum().backward()
 
 
