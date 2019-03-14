@@ -23,8 +23,7 @@ class DESIRE(nn.Module):
                 x_start,
                 scene):
         y_pred_rel, x_last_hidden, mean, log_var = self.SGM(x_rel, y_rel)
-        
-        
+
         # print("YPRED REL", y_pred_rel.shape)
         out_scores, pred_delta = self.IOC(y_pred_rel,
                                           x_last_hidden,
@@ -32,10 +31,15 @@ class DESIRE(nn.Module):
                                           x_start)
         return y_pred_rel, pred_delta, mean, log_var
 
-    def inference(self, x):
-        ypred, x_last_hidden = self.SGM.inference(x)
-        out_scores, pred_delta = self.IOC(ypred, x_last_hidden)
+    def inference(self, x, scene, x_start):
+        ypred_rel, x_last_hidden = self.SGM.inference(x)
 
+        out_scores, pred_delta = self.IOC(ypred_rel,
+                                          x_last_hidden,
+                                          scene,
+                                          x_start)
+
+        return ypred_rel, pred_delta
 
 if __name__ == "__main__":
     model = DESIRE(IOCParams(), SGMParams())
