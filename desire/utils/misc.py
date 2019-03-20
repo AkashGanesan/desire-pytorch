@@ -82,14 +82,14 @@ def get_dset_path(dset_name, dset_type):
 def relative_to_abs(rel_traj, start_pos):
     """
     Inputs:
-    - rel_traj: pytorch tensor of shape (seq_len, batch, 2)
+    - rel_traj: pytorch tensor of shape (batch, 2, seq_len)
     - start_pos: pytorch tensor of shape (batch, 2)
     Outputs:
-    - abs_traj: pytorch tensor of shape (seq_len, batch, 2)
+    - abs_traj: pytorch tensor of shape (batch, 2, seq_len)
     """
     # batch, seq_len, 2
-    rel_traj = rel_traj.permute(1, 0, 2)
-    displacement = torch.cumsum(rel_traj, dim=1)
-    start_pos = torch.unsqueeze(start_pos, dim=1)
+
+    displacement = torch.cumsum(rel_traj, dim=2)
+    start_pos = torch.unsqueeze(start_pos, dim=2)
     abs_traj = displacement + start_pos
-    return abs_traj.permute(1, 0, 2)
+    return abs_traj

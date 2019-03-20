@@ -54,7 +54,7 @@ class SGM(nn.Module):
         masked_out = torch.mul(recon_y, x_enc_hidden[-1])
 
         masked_out.unsqueeze_(1)
-        
+
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
         batch_size = masked_out.size(0)
         hidden_size = masked_out.size(2)

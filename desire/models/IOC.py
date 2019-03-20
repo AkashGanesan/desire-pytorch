@@ -19,10 +19,7 @@ class IOC(nn.Module):
         self.scfs = []
         self.grus = []
         self.scoring_fcs = []
-        # for i in range(self.params.num_layers):
-        #     self.grus.append(nn.GRU(**params.gru_params))
-        #     self.scfs.append(SCF(i, params.scf_params))
-        #     self.scoring_fcs.append(get_fc_act(params.scoring_fc))
+
         self.grus = nn.ModuleList([nn.GRU(**params.gru_params) for i in range(params.num_layers)])
         self.scfs = nn.ModuleList([SCF(i, params.scf_params) for i in range(params.num_layers)])
         self.scoring_fcs = nn.ModuleList([get_fc_act(params.scoring_fc) for i in range(params.num_layers)])
@@ -41,12 +38,12 @@ class IOC(nn.Module):
         prev_hidden = prev_hidden.unsqueeze(0)
         out_scores = []
         scene = self.scene_pooling_cnn(scene).squeeze(0)
-        # print("Scene shape is", scene.size())
-        
+
+
         prev_hidden = prev_hidden.clone()
         prev_hidden.detach()
-        
-        
+
+
         for i in range(self.params.num_layers):
             prev_hidden.squeeze_(0)
             # print ("prev_hidden shape", prev_hidden.shape,
