@@ -25,16 +25,10 @@ class SGM(nn.Module):
         x_enc_out, x_enc_hidden = self.enc_x(x)
         y_enc_out, y_enc_hidden = self.enc_y(y)
         recon_y, means, log_var, z = self.cvae(y_enc_hidden[-1], x_enc_hidden[-1])
-        masked_out = torch.mul(recon_y, x_enc_hidden[-1])
-        masked_out.unsqueeze_(1)
+
         # print("masked_out.shappe", masked_out.shape)
+        masked_out = self.get_masked_out(recon_y, x_enc_hidden[-1])
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
-        batch_size = masked_out.size(0)
-        hidden_size = masked_out.size(2)
-        masked_out = torch.cat([masked_out,
-                               torch.zeros(batch_size,
-                                           self.params.rnn_dec_params.n_layers - 1,
-                                           hidden_size).to(device)], dim=1)
         dec_out, dec_hidden = self.dec(masked_out, hidden_rnn_dec_input)
         dec_out.transpose_(1, 2)  # Swap seq_length with no of dimensions
         dec_out_list = []
@@ -46,24 +40,15 @@ class SGM(nn.Module):
                 means,
                 log_var)
 
+
     def inference(self, x):
         device = x.device
         x_enc_out, x_enc_hidden = self.enc_x(x)
         # print(x_enc_hidden[-1].shape, self.cvae.latent_size, x_enc_hidden.size(0))
         recon_y = self.cvae.inference(x_enc_hidden[-1], x_enc_hidden[-1].size(0))
-        masked_out = torch.mul(recon_y, x_enc_hidden[-1])
 
-        masked_out.unsqueeze_(1)
-
+        masked_out = self.get_masked_out(recon_y, x_enc_hidden[-1])
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
-        batch_size = masked_out.size(0)
-        hidden_size = masked_out.size(2)
-
-        masked_out = torch.cat([masked_out,
-                               torch.zeros(batch_size,
-                                           self.params.rnn_dec_params.n_layers - 1,
-                                           hidden_size).to(device)], dim=1)
-
         dec_out, dec_hidden = self.dec(masked_out, hidden_rnn_dec_input)
         dec_out.transpose_(1, 2)  # Swap seq_length with no of dimensions
         dec_out_list = []
@@ -72,6 +57,31 @@ class SGM(nn.Module):
 
         return (torch.stack(dec_out_list, dim=2),
                 x_enc_out[:, -1, :])
+
+
+    def get_masked_out(self, recon_y, x_enc_hidden_final):
+        '''get_masked_out
+        :: Reconstructed output
+        -> Final hidden layer of input encoder
+        -> Masked output
+
+        The masked out is a the final hidden output from the RNN encoder 1 (for
+        x coordinates where x is the input sequence while y is future sequence to be predicted).
+        '''
+
+        masked_out = torch.mul(recon_y, x_enc_hidden_final)
+        masked_out.unsqueeze_(1)
+        hidden_rnn_dec_input = torch.zeros_like(masked_out)
+        batch_size = masked_out.size(0)
+        hidden_size = masked_out.size(2)
+        final_mask = torch.zeros(batch_size,
+                                 self.params.rnn_dec_params.n_layers,
+                                 hidden_size).to(device)
+        # print("size of masked_out", masked_out.shape)
+        # print("size of final_mask", final_mask.shape)
+
+        final_mask[:, 0, :] = masked_out.squeeze(1)
+        return final_mask
 
 
 if __name__ == "__main__":
