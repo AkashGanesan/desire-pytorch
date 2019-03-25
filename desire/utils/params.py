@@ -74,7 +74,7 @@ class SocialPoolingParams:
     hidden_size: int = 48
     num_agents: int = 4
     rmin: int = 1
-    rmax: int = 2
+    rmax: int = 300
 
     def __post_init__(self):
         self.fc_config = [self.num_rings * self.num_wedges * self.hidden_size,
