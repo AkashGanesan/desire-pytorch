@@ -95,4 +95,4 @@ def total_loss(pred_traj,
     rl = reg_loss(pred_traj, pred_delta, pred_traj_gt)
 
     tloss = (l2l + kld + cel + rl).sum() / batch
-    return tloss, (l2l, kld, cel, rl)
+    return tloss, (l2l.mean(), kld.mean(), cel.mean(), rl.mean())
