@@ -68,7 +68,7 @@ class SGM(nn.Module):
         The masked out is a the final hidden output from the RNN encoder 1 (for
         x coordinates where x is the input sequence while y is future sequence to be predicted).
         '''
-
+        device = recon_y.device
         masked_out = torch.mul(recon_y, x_enc_hidden_final)
         masked_out.unsqueeze_(1)
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
