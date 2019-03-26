@@ -30,7 +30,7 @@ class IOC(nn.Module):
 
         self.scene_pooling_cnn = ScenePoolingCNN()
 
-    def forward(self, ypred, prev_hidden, scene, x_start):
+    def forward(self, ypred, prev_hidden, scene, x_start, seq_start_end=None):
         ypred_cpu = ypred.cpu()
         ypred_cpu = ypred_cpu.detach().numpy()
         velocity = np.gradient(ypred_cpu, axis=0)
@@ -62,7 +62,8 @@ class IOC(nn.Module):
                                    ypred[:, :, i],
                                    velocity[:, :, i],
                                    scene,
-                                   x_start)
+                                   x_start,
+                                   seq_start_end)
             # print("scf_out", scf_out.get_device())
             # print("scf dimensions", scf_out.size())
             gru_out, prev_hidden = self.grus[0](scf_out.unsqueeze(1),

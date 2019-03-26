@@ -16,6 +16,8 @@ def get_scene(scene, ypred_rel, x, scene_size):
     width = scene_size[0]
     height = scene_size[1]
     shrinkage = scene_size[2]
+
+
     x = idx[:, 0]
     y = idx[:, 1]
     x = width // 2 + x

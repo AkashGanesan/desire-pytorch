@@ -2,6 +2,7 @@ from typing import NamedTuple
 import torch.nn as nn
 from dataclasses import dataclass, field
 from typing import List
+import numpy as np
 
 NUM_AGENTS = 16
 NUM_LENGTH = 40
@@ -67,6 +68,7 @@ class CVAEParams:
                                                 latent_size=self.latent_size)
 
 
+
 @dataclass
 class SocialPoolingParams:
     num_rings: int = 6
@@ -80,7 +82,7 @@ class SocialPoolingParams:
         self.fc_config = [self.num_rings * self.num_wedges * self.hidden_size,
                           self.hidden_size,
                           nn.ReLU()]
-
+        self.rmax_by_rmin = np.log(int(self.rmax / float(self.rmin)))
 @dataclass    
 class PoolingCNNParams:
     layer_configuration: List = field(default_factory = lambda : [(3, 16, (5, 5), 2, nn.Conv2d, nn.ReLU()),

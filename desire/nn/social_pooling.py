@@ -16,10 +16,9 @@ def ring_indices(ydash, params: SocialPoolingParams):
         num_wedges = params.num_wedges
         rmin = params.rmin
         rmax = params.rmax
+        rmax_by_rmin = params.rmax_by_rmin
 
-        # print("A")
         r = torch.norm(ydash[:, None] - ydash, dim=2, p=2)
-        rmax_by_rmin = np.log(int(rmax / float(rmin)))
 
         ring_ids = torch.where(r < rmin,
                                torch.zeros_like(r) - 1,
@@ -32,8 +31,18 @@ def ring_indices(ydash, params: SocialPoolingParams):
         theta = torch.atan2(y_diff, x_diff)
         wedge_ids = theta * num_wedges / (2 * np.pi)
 
-
     return ring_ids, (wedge_ids + (num_wedges // 2 - 1)).int()
+
+# def pool_all(ydash, hidden, ring_indices, wedge_indices, params: SocialPoolingParams):
+#     num_rings = params.num_rings
+#     num_wedges = params.num_wedges
+#     num_agents = ring_indices.size(0)
+
+#     with torch.no_grad():
+#         for agent_idx in range(num_agents):
+            
+
+
 
 
 def pool_layers(ring_id_all, wedge_id_all, params: SocialPoolingParams):
@@ -66,7 +75,12 @@ class SocialPool(nn.Module):
         self.fc = nn.Linear(*params.fc_config[0:2])
         self.hidden_size = params.hidden_size
 
-    def forward(self, y_pred_rel, x_start, hidden):
+    def forward(self, y_pred_rel, x_start, hidden, seq_start_end=None):
+        if seq_start_end is None:
+            seq_start_end = ((0, y_pred_rel.size(0)))
+
+
+
         y_pred = y_pred_rel + x_start
         ridx, widx = ring_indices(y_pred,
                                   self.params)
@@ -126,3 +140,5 @@ if __name__ == "__main__":
 
     for (k, v) in valid_hidden_idx.items():
         log_polar_hidden[k] = h[v].mean(dim=0)
+
+
