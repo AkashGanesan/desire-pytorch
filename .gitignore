@@ -2,3 +2,7 @@
 *.txt
 env/
 *.png
+*.pth*
+*.log*
+*.png
+*.jpe?g
