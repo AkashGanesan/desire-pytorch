@@ -35,7 +35,7 @@ def get_freer_gpu():
 def train(dataset_name,
           path_of_static_image,
           restore_path=None,
-          batch_size=1,
+          batch_size=32,
           num_epochs=200,
           norm_clip_value=1.0,
           lr = 1e-3):
@@ -44,7 +44,7 @@ def train(dataset_name,
     val_path = get_dset_path(dataset_name, 'val')
 
     logger.info("Initializing train dataset")
-    train_dset, train_loader = data_loader(train_path)
+    train_dset, train_loader = data_loader(train_path, batch_size=batch_size)
     # logger.info("Initializing val dataset")
     # _, val_loader = data_loader(val_path)
 
@@ -68,7 +68,7 @@ def train(dataset_name,
     desire = DESIRE(IOCParams(),
                     SGMParams())
     desire = desire.to(device)
-    
+
     optimizer = optim.Adam(desire.parameters(),lr=lr)
 
     # Maybe restore from checkpoint
@@ -83,7 +83,8 @@ def train(dataset_name,
     print("Num iterations", num_iterations)
     for epoch in range(num_epochs):
 
-        for batch in train_loader:
+        for batch_idx, batch in enumerate(train_loader):
+            logging.info("epoch {} :batch_idx {}, ".format(epoch,batch_idx))
             optimizer.zero_grad()
             batch = [tensor.to(device) for tensor in batch]
 
@@ -96,31 +97,34 @@ def train(dataset_name,
             obs_traj_rel = obs_traj - obs_traj[:, :, 0].unsqueeze(2)
             pred_traj_rel = pred_traj_gt - pred_traj_gt[:, :, 0].unsqueeze(2)
 
-            for r in seq_start_end:
-                s, w = r
-                # logging.info("x_start device id: %s", x_start.get_device())
-                y_pred_traj, pred_delta, mean, log_var = desire(obs_traj_rel[s:w, :, :],
-                                                                pred_traj_rel[s:w, :, :],
-                                                                x_start[s:w, :],
-                                                                scene)
-                tloss, (l2l,kld, cel,rl) = total_loss(y_pred_traj,
-                                                      pred_delta,
-                                                      pred_traj_rel[s:w, :, :],
-                                                      mean,
-                                                      log_var)
 
-                tloss.backward()
-                torch.nn.utils.clip_grad_norm_(desire.parameters(), norm_clip_value)
-                optimizer.step()
-                if t % 100 == 0:
-                    t = 0
-                    logging.info("Total loss {}; epoch = {}".format(str(tloss.item()), epoch))
-                    logging.info("L2L {}; RL {}; CEL {}; KLD {}; epoch = {}".format(l2l.item(),
-                                                                                    rl.item(),
-                                                                                    cel.item(),
-                                                                                    kld.item(),
-                                                                                    epoch))
-                t +=1
+
+            # logging.info("x_start device id: %s", x_start.get_device())
+
+            y_pred_traj, pred_delta, mean, log_var = desire(obs_traj_rel,
+                                                            pred_traj_rel,
+                                                            x_start,
+                                                            scene,
+                                                            seq_start_end)
+            tloss, (l2l,kld, cel,rl) = total_loss(y_pred_traj,
+                                                  pred_delta,
+                                                  pred_traj_rel,
+                                                  mean,
+                                                  log_var)
+
+
+            tloss.backward()
+            torch.nn.utils.clip_grad_norm_(desire.parameters(), norm_clip_value)
+            optimizer.step()
+            if t % 99 == 0:
+                t = 0
+                logging.info("Total loss {}; epoch = {}".format(str(tloss.item()), epoch))
+                logging.info("L2L {}; RL {}; CEL {}; KLD {}; epoch = {}".format(l2l.item(),
+                                                                                rl.item(),
+                                                                                cel.item(),
+                                                                                kld.item(),
+                                                                                epoch))
+            t +=1
 
         weight_save_path = "weights/iter_{}.pth".format(str(epoch).zfill(3))
         logging.info("Saving weights for epoch {} in {}".format(epoch, weight_save_path))
