@@ -31,10 +31,13 @@ class IOC(nn.Module):
         self.scene_pooling_cnn = ScenePoolingCNN()
 
     def forward(self, ypred, prev_hidden, scene, x_start, seq_start_end=None):
-        ypred_cpu = ypred.cpu()
-        ypred_cpu = ypred_cpu.detach().numpy()
-        velocity = np.gradient(ypred_cpu, axis=0)
-        velocity = torch.Tensor(velocity).to(ypred.device)
+        velocity = torch.zeros_like(ypred)
+        velocity[:, :, 1:] =  ypred[:,:, 1:] - ypred[:, :, :-1]
+
+        # ypred_cpu = ypred.cpu()
+        # ypred_cpu = ypred_cpu.detach().numpy()
+        # velocity = np.gradient(ypred_cpu, axis=0)
+        # velocity = torch.Tensor(velocity).to(ypred.device)
         prev_hidden = prev_hidden.unsqueeze(0)
         out_scores = []
         scene = self.scene_pooling_cnn(scene).squeeze(0)
