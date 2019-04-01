@@ -36,9 +36,9 @@ def train(dataset_name,
           path_of_static_image,
           restore_path=None,
           batch_size=32,
-          num_epochs=200,
+          num_epochs=700,
           norm_clip_value=1.0,
-          lr = 1e-3):
+          lr = 5e-4):
 
     train_path = get_dset_path(dataset_name, 'train')
     val_path = get_dset_path(dataset_name, 'val')
@@ -81,13 +81,14 @@ def train(dataset_name,
     curr_epoch = 0
     t = 0
     print("Num iterations", num_iterations)
+    scene = scene.to(device)
     for epoch in range(num_epochs):
 
         for batch_idx, batch in enumerate(train_loader):
             logging.info("epoch {} :batch_idx {}, ".format(epoch,batch_idx))
             optimizer.zero_grad()
-            batch = [tensor.to(device) for tensor in batch]
 
+            batch = [tensor.to(device) for tensor in batch]
             (obs_traj, pred_traj_gt, _, _, _, _, seq_start_end) = batch
 
             obs_traj = obs_traj.permute(1,2,0)
@@ -113,10 +114,15 @@ def train(dataset_name,
                                                   log_var)
 
 
-            tloss.backward()
+
+            l2l.backward(retain_graph=True)
+            kld.backward(retain_graph=True)
+            cel.backward(retain_graph=True)
+            rl.backward(retain_graph=False)
+
             torch.nn.utils.clip_grad_norm_(desire.parameters(), norm_clip_value)
             optimizer.step()
-            if t % 99 == 0:
+            if t % 10 == 0:
                 t = 0
                 logging.info("Total loss {}; epoch = {}".format(str(tloss.item()), epoch))
                 logging.info("L2L {}; RL {}; CEL {}; KLD {}; epoch = {}".format(l2l.item(),
