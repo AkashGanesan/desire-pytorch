@@ -11,7 +11,7 @@ def data_loader(path,
                 min_ped=1,
                 delim='\t',
                 batch_size=20,
-                loader_num_workers=4):
+                loader_num_workers=8):
     dset = TrajectoryDataset(
         path,
         obs_len=obs_len,

@@ -51,13 +51,15 @@ def kld_loss(mean,
 def cross_entropy_loss(pred_traj,
                        pred_traj_gt):
     d = (pred_traj_gt - pred_traj).norm(dim=1)
-    return F.softmax(-d.max(dim=1)[0], dim=0)
+    return F.softmax(-d.max(dim=1)[0], dim=0)[0]
 
 
 
 def reg_loss(pred_traj,
              pred_delta,
              pred_traj_gt):
+    assert pred_traj_gt.size() == pred_delta.size()
+    assert pred_traj_gt.size() == pred_traj.size()
     batch, _, seq_len = pred_traj.size()
     d = (pred_traj_gt - pred_traj - pred_delta).norm(dim=1)
     return d.sum(dim=1) / seq_len
@@ -94,5 +96,6 @@ def total_loss(pred_traj,
     cel = cross_entropy_loss(pred_traj, pred_traj_gt)
     rl = reg_loss(pred_traj, pred_delta, pred_traj_gt)
 
+
     tloss = (l2l + kld + cel + rl).sum() / batch
-    return tloss, (l2l, kld, cel, rl)
+    return tloss, (l2l.mean(), kld.mean(), cel, rl.mean())
