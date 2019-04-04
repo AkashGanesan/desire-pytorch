@@ -35,7 +35,7 @@ def get_freer_gpu():
 def train(dataset_name,
           path_of_static_image,
           restore_path=None,
-          batch_size=32,
+          batch_size=64,
           num_epochs=700,
           norm_clip_value=1.0,
           lr = 5e-4):
@@ -50,12 +50,9 @@ def train(dataset_name,
 
 
     device = torch.device("cuda:{}".format(get_freer_gpu()) if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  #
     logger.info("Device is %s", device)
 
-    image = Image.open(path_of_static_image)
-    scene = TF.to_tensor(image)
-    scene.unsqueeze_(0)
-    scene = scene.to(device)
 
     iterations_per_epoch = len(train_dset) / batch_size
     if num_epochs:
@@ -69,13 +66,17 @@ def train(dataset_name,
                     SGMParams())
     desire = desire.to(device)
 
+    image = Image.open(path_of_static_image)
+    scene = TF.to_tensor(image)
+    scene.unsqueeze_(0)
+    scene = scene.to(device)
+
+
     optimizer = optim.Adam(desire.parameters(),lr=lr)
 
     # Maybe restore from checkpoint
     if restore_path is not None:
         restore_dict = torch.load(restore_path)
-
-
         desire.load_state_dict(restore_dict)
 
     curr_epoch = 0
@@ -89,42 +90,60 @@ def train(dataset_name,
             optimizer.zero_grad()
 
             batch = [tensor.to(device) for tensor in batch]
-            (obs_traj, pred_traj_gt, _, _, _, _, seq_start_end) = batch
+            (obs_traj, pred_traj_gt, obs_traj_rel, pred_traj_gt_rel, _, _, seq_start_end) = batch
 
             obs_traj = obs_traj.permute(1,2,0)
             pred_traj_gt = pred_traj_gt.permute(1,2,0)
 
+            obs_traj_rel = obs_traj_rel.permute(1,2,0)
+            pred_traj_gt_rel = pred_traj_gt_rel.permute(1,2,0)
+
             x_start = obs_traj[:, :, 0].to(device)
-            obs_traj_rel = obs_traj - obs_traj[:, :, 0].unsqueeze(2)
-            pred_traj_rel = pred_traj_gt - pred_traj_gt[:, :, 0].unsqueeze(2)
 
 
-
-            # logging.info("x_start device id: %s", x_start.get_device())
+            # print("asd1",
+            #       obs_traj_rel.size(),
+            #       pred_traj_gt_rel.size())
 
             y_pred_traj, pred_delta, mean, log_var = desire(obs_traj_rel,
-                                                            pred_traj_rel,
+                                                            pred_traj_gt_rel,
                                                             x_start,
                                                             scene,
                                                             seq_start_end)
+            # print("asd",
+            #       y_pred_traj.size(),
+            #       pred_delta.size(),
+            #       pred_traj_gt_rel.size())
             tloss, (l2l,kld, cel,rl) = total_loss(y_pred_traj,
                                                   pred_delta,
-                                                  pred_traj_rel,
+                                                  pred_traj_gt_rel,
                                                   mean,
                                                   log_var)
 
 
+            num_batches = seq_start_end.size(0)
+            final_loss = torch.zeros(num_batches)
+            for i, (s, e) in enumerate(seq_start_end[0:-2]):
+                s = s.item()
+                e = e.item()
+                l = tloss[s:e].sum()
+                final_loss[i] = l
+            final_loss = final_loss.sum()
+            final_loss.backward()
+            optimizer.step()
 
-            l2l.backward(retain_graph=True)
-            kld.backward(retain_graph=True)
-            cel.backward(retain_graph=True)
-            rl.backward(retain_graph=False)
+            #tloss_final = tloss.mean()
+            #tloss_final.backward()
+            # l2l.backward(retain_graph=True)
+            # kld.backward(retain_graph=True)
+            # cel.backward(retain_graph=True)
+            # rl.backward(retain_graph=False)
 
             torch.nn.utils.clip_grad_norm_(desire.parameters(), norm_clip_value)
             optimizer.step()
             if t % 10 == 0:
                 t = 0
-                logging.info("Total loss {}; epoch = {}".format(str(tloss.item()), epoch))
+                logging.info("Total loss {}; epoch = {}".format(str(final_loss.item()), epoch))
                 logging.info("L2L {}; RL {}; CEL {}; KLD {}; epoch = {}".format(l2l.item(),
                                                                                 rl.item(),
                                                                                 cel.item(),
@@ -141,5 +160,5 @@ if __name__ == "__main__":
     print(os.getcwd())
     dataset_name = os.path.abspath("./dataset/datasets/zara1/")
     path_of_static_image = os.path.abspath("./zara01.background.png")
-    # restore_path = '/home/akaberto/learn/desire-torch/weights/iter_000.pth'
-    train(dataset_name, path_of_static_image)
+    restore_path = '/home/akaberto/learn/desire-torch/weights/iter_022.pth'
+    train(dataset_name, path_of_static_image, restore_path=restore_path)

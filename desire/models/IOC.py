@@ -30,39 +30,38 @@ class IOC(nn.Module):
 
         self.scene_pooling_cnn = ScenePoolingCNN()
 
-    def forward(self, ypred, prev_hidden, scene, x_start, seq_start_end=None):
-        velocity = torch.zeros_like(ypred)
-        velocity[:, :, 1:] =  ypred[:,:, 1:] - ypred[:, :, :-1]
+    def forward(self, pred_traj_rel, prev_hidden, scene, x_start, obs_traj_rel_cum_last, seq_start_end=None):
+        # Since the output is relative, it is already a velocity.
+        velocity = pred_traj_rel
 
-        # ypred_cpu = ypred.cpu()
-        # ypred_cpu = ypred_cpu.detach().numpy()
-        # velocity = np.gradient(ypred_cpu, axis=0)
-        # velocity = torch.Tensor(velocity).to(ypred.device)
         prev_hidden = prev_hidden.unsqueeze(0)
         out_scores = []
         scene = self.scene_pooling_cnn(scene).squeeze(0)
-
+        # Here, calculate the absolute trajectory. You need the obs_traj's last
+        # value so as to calculate the absolute required patth which shall b
+        pred_traj_abs = x_start.unsqueeze(2) + torch.cat((obs_traj_rel_cum_last.unsqueeze(-1),
+                                                          pred_traj_rel),
+                                                         dim=2).cumsum(dim=2)[:, :, 1:]
+        pred_traj_abs = pred_traj_abs.detach()
 
         prev_hidden = prev_hidden.clone()
-        prev_hidden.detach()
-
-
         for i in range(self.params.num_layers):
             prev_hidden.squeeze_(0)
             # print ("prev_hidden shape", prev_hidden.shape,
-            #        ypred.shape,
+            #        pred_traj_rel.shape,
             #        velocity.shape,
             #        scene.shape,
             #        x_start.shape)
 
             # print("prev_hidden", prev_hidden.get_device())
-            # print("ypred", ypred.get_device())
+            # print("pred_traj_rel", pred_traj_rel.get_device())
             # print("velocity", velocity.get_device())
             # print("scene", scene.get_device())
             # print("x_start", x_start.get_device())
 
             scf_out = self.scfs[i](prev_hidden,
-                                   ypred[:, :, i],
+                                   pred_traj_abs[:, :, i],
+                                   pred_traj_rel[:, :, i],
                                    velocity[:, :, i],
                                    scene,
                                    x_start,

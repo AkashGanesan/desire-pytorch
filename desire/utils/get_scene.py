@@ -2,7 +2,7 @@ import torch
 
 
 
-def get_scene(scene, ypred_rel, x, scene_size):
+def get_scene(scene, ypred, scene_size):
     '''get_scene
     input
     =====
@@ -10,7 +10,7 @@ def get_scene(scene, ypred_rel, x, scene_size):
     ypred: (x, y) where x, y are floats
     output:
     '''
-    z = ypred_rel + x
+    z = ypred
     idx = z.long()
 
     width = scene_size[0]

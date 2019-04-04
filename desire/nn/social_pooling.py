@@ -68,16 +68,13 @@ class SocialPool(nn.Module):
         self.fc = nn.Linear(*params.fc_config[0:2])
         self.hidden_size = params.hidden_size
 
-    def forward(self, y_pred_rel, x_start, hidden, seq_start_end=None):
+    def forward(self, y_pred, x_start, hidden, seq_start_end=None):
         device = x_start.device
-        TOTAL_BATCH_SIZE, _ = y_pred_rel.size()
-
+        TOTAL_BATCH_SIZE, _ = y_pred.size()
         HIDDEN_SIZE = hidden.size(1)
 
         if seq_start_end is None:
-            seq_start_end = ((0, y_pred_rel.size(0)),)
-
-        y_pred = y_pred_rel + x_start
+            seq_start_end = ((0, y_pred.size(0)),)
 
         log_polar_hidden = torch.zeros(TOTAL_BATCH_SIZE,
                                        self.params.num_rings,

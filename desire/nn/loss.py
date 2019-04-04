@@ -18,10 +18,10 @@ def bce_loss(input, target):
     """
     neg_abs = -input.abs()
     loss = input.clamp(min=0) - input * target + (1 + neg_abs.exp()).log()
-    return loss.mean()
+    return loss
 
 
-def l2_loss(pred_traj, pred_traj_gt, mode='sum'):
+def l2_loss(pred_traj, pred_traj_gt, mode='raw'):
     """
     Input:
     - pred_traj: Tensor of shape (seq_len, batch, 2). Predicted trajectory.
@@ -34,8 +34,10 @@ def l2_loss(pred_traj, pred_traj_gt, mode='sum'):
     """
     batch, _, seq_len = pred_traj.size()
     loss = (pred_traj_gt - pred_traj).norm(dim=1)
-    # if mode == 'sum':
-    return torch.sum(loss, dim=1) / seq_len
+    if mode == 'sum':
+        return torch.sum(loss, dim=1)
+    else:
+        return loss
     # elif mode == 'average':
     #     return torch.sum(loss) / torch.numel(loss_mask.data)
     # elif mode == 'raw':
@@ -44,14 +46,15 @@ def l2_loss(pred_traj, pred_traj_gt, mode='sum'):
 
 def kld_loss(mean,
              log_var):
-    KLD = - 0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
+    KLD = - 0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp(), dim=1)
     return KLD
 
 
 def cross_entropy_loss(pred_traj,
                        pred_traj_gt):
-    d = (pred_traj_gt - pred_traj).norm(dim=1)
-    return F.softmax(-d.max(dim=1)[0], dim=0)[0]
+    d = (pred_traj_gt - pred_traj)
+    return F.softmax(-d.norm(dim=1), dim=0).max(dim=1)[0]
+    
 
 
 
@@ -62,7 +65,7 @@ def reg_loss(pred_traj,
     assert pred_traj_gt.size() == pred_traj.size()
     batch, _, seq_len = pred_traj.size()
     d = (pred_traj_gt - pred_traj - pred_delta).norm(dim=1)
-    return d.sum(dim=1) / seq_len
+    return d.sum(dim=1)
 
 
 # class total_loss(nn.Module):
@@ -80,7 +83,7 @@ def reg_loss(pred_traj,
 #         kld = kld_loss(mean, logvar)
 #         cel = cross_entropy_loss(pred_traj, pred_traj_gt)
 #         rl = reg_loss(pred_traj, pred_delta, pred_traj_gt)
-        
+
 #         tloss = (l2l + kld + cel + rl).sum() / batch
 #         return tloss, (l2l, kld, cel, rl)
 
@@ -91,11 +94,17 @@ def total_loss(pred_traj,
                mean,
                logvar):
     batch, _, seq_len = pred_traj.size()
-    l2l = l2_loss(pred_traj, pred_traj_gt)
+    l2l = l2_loss(pred_traj, pred_traj_gt, mode='sum')
     kld = kld_loss(mean, logvar)
     cel = cross_entropy_loss(pred_traj, pred_traj_gt)
     rl = reg_loss(pred_traj, pred_delta, pred_traj_gt)
 
+    # print(mean.size(),
+    #       l2l.size(),
+    #       kld.size(),
+    #       cel.size(),
+    #       rl.size())
 
-    tloss = (l2l + kld + cel + rl).sum() / batch
-    return tloss, (l2l.mean(), kld.mean(), cel, rl.mean())
+
+    tloss = (l2l + kld + cel + rl)
+    return tloss, (l2l.sum(dim=0), kld.sum(dim=0), cel.sum(dim=0), rl.sum(dim=0))

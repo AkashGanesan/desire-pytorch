@@ -19,6 +19,7 @@ class SGM(nn.Module):
         self.dec = DecoderRNN(params.rnn_dec_params)
         self.dec_fc = nn.Linear(params.rnn_dec_params.gru_hidden_size,
                                 params.final_output_size)
+        
 
     def forward(self, x, y):
         device = x.device
@@ -30,7 +31,7 @@ class SGM(nn.Module):
         masked_out = self.get_masked_out(recon_y, x_enc_hidden[-1])
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
         dec_out, dec_hidden = self.dec(masked_out, hidden_rnn_dec_input)
-        dec_out.transpose_(1, 2)  # Swap seq_length with no of dimensions
+        dec_out = dec_out.transpose(1, 2)  # Swap seq_length with no of dimensions
         dec_out_list = []
         for i in range(dec_out.size(2)):
             dec_out_list.append(self.dec_fc(dec_out[:, :, i]))
@@ -70,7 +71,7 @@ class SGM(nn.Module):
         '''
         device = recon_y.device
         masked_out = torch.mul(recon_y, x_enc_hidden_final)
-        masked_out.unsqueeze_(1)
+        masked_out = masked_out.unsqueeze(1)
         hidden_rnn_dec_input = torch.zeros_like(masked_out)
         batch_size = masked_out.size(0)
         hidden_size = masked_out.size(2)

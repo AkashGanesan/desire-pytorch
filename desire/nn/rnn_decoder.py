@@ -7,14 +7,14 @@ from desire.utils import DecoderRNNParams
 class DecoderRNN(nn.Module):
     def __init__(self,
                  params: DecoderRNNParams):
-        
+
         super(DecoderRNN, self).__init__()
         self.params = params
         self.gru_hidden_size = params.gru_hidden_size
         self.output_size = params.output_size
         self.dropout = params.dropout
         self.n_layers = params.n_layers
-        
+
         # self.embedding = nn.Embedding(output_size, hidden_size)
         self.gru = nn.GRU(self.gru_hidden_size,
                           self.gru_hidden_size,
