@@ -38,8 +38,12 @@ class DESIRE(nn.Module):
 
         return pred_traj_rel, pred_delta, mean, log_var
 
-    def inference(self, x, scene, x_start, seq_start_end):
-        pred_traj_rel, x_last_hidden = self.SGM.inference(x)
+    def inference(self,
+                  obs_traj_rel,
+                  scene,
+                  x_start,
+                  seq_start_end):
+        pred_traj_rel, x_last_hidden = self.SGM.inference(obs_traj_rel)
         obs_traj_rel_cum_last = obs_traj_rel.cumsum(dim=2)[:,:,-1]
 
         out_scores, pred_delta = self.IOC(pred_traj_rel=pred_traj_rel,
