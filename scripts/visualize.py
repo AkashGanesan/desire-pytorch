@@ -23,7 +23,7 @@ from desire.utils.misc import relative_to_abs, get_dset_path
 from desire.utils.misc import int_tuple, bool_flag, get_total_norm
 from desire.models import DESIRE
 from desire.utils.params import IOCParams, SGMParams
-from desire.nn.loss import *tra
+from desire.nn.loss import *
 from PIL import Image
 
 
